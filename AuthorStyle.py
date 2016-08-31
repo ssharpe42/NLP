@@ -40,6 +40,7 @@ class Model:
 
 		return list(zip(*[text_list[i:] for i in range(n)]))
 
+	#set up language models for word n-grams and pos n-grams
 	def __set_ngram_stats(self, lang):
 
 		sent_list = self.word_sent if lang else self.pos_sent
@@ -70,7 +71,7 @@ class Model:
 			self.pos['tri_p'] = {trigram:log2(self.pos['gt_counts'][3][trigram]/float(self.pos['gt_counts'][2][trigram[:-1]])) for trigram in self.pos['gt_counts'][3] }
 
 
-
+	#Good turing smoothing
 	def __GoodTuring(self, lang):
 
 		def nbins(data):
@@ -154,10 +155,9 @@ class Model:
 
 		return smooth(a1,b1,Nbins,data,1,1.96), smooth(a2,b2,Nbins,data,2,1.96), smooth(a3,b3,Nbins,data,3,1.96)
 
-######### TO DO ###################
+    #apply language model to other text
 	def apply_model(self, corpus):
 
-		#this will eventually come in preprocessed from the other book, but we do it here for now
 		sentences = re.split(r'(?<!\w\.\w.)(?<![A-Z][a-z]\.)(?<=\.|\?)\s', corpus.strip())
 		token_sent = [self.tokenize(s) for s in sentences]
 		word_sent = [['<s>','<s>']+ [w.orth_ for w in s] + ['</s>'] for s in token_sent]
@@ -165,7 +165,7 @@ class Model:
 
 		return sum(self.linearscore(word_sent,True))/len([w for s in word_sent for w in s[2:]]), sum(self.linearscore(pos_sent, False))/len([w for s in pos_sent for w in s[2:]])
 
-
+	#linear interpolated uni-bi-trigram scores
 	def linearscore(self, sent_token_list, lang):
 
 		bigram_sent_list = [self.ngrams(sent,2) for sent in sent_token_list]
@@ -194,34 +194,35 @@ class Model:
 
 def main():
 
-	#Brown = open('/Users/Sam/Desktop/School/NLP/Homework1/Brown_train.txt','r').read()
-	Ulysess = open('/Users/Sam/Desktop/Projects/BookNLP/4300.txt','r').read()
+
+	Ulysess = open('data/4300.txt','r').read()
 	Ulysess=re.sub('\n',' ',Ulysess.replace('--',''))
 	Ulysess = re.sub('\t',' ',Ulysess)
 	Ulysess = ' '.join(Ulysess.split())[550:]
 
-	HeartofDarkness = open('/Users/Sam/Desktop/Projects/BookNLP/HeartofDarkness.txt','r').read()
+	HeartofDarkness = open('data/HeartofDarkness.txt','r').read()
 	HeartofDarkness = HeartofDarkness[660:]
 	HeartofDarkness=re.sub('\n',' ',HeartofDarkness)
 	HeartofDarkness = re.sub('\t',' ',HeartofDarkness)
 
-	ThisSideofParadise = open('/Users/Sam/Desktop/Projects/BookNLP/ThisSideofParadise.txt','r').read()
+	ThisSideofParadise = open('data/ThisSideofParadise.txt','r').read()
 	ThisSideofParadise = ThisSideofParadise[675:]
 	ThisSideofParadise=re.sub('\n',' ',ThisSideofParadise)
 	ThisSideofParadise = re.sub('\t',' ',ThisSideofParadise)
 
 
-	PrideandPrejudice = open('/Users/Sam/Desktop/Projects/BookNLP/PrideandPrejudice.txt','r').read()
+	PrideandPrejudice = open('data/PrideandPrejudice.txt','r').read()
 	PrideandPrejudice = PrideandPrejudice[651:]
 	PrideandPrejudice=re.sub('\n',' ',PrideandPrejudice)
 	PrideandPrejudice = re.sub('\t',' ',PrideandPrejudice)
 
-
+	#create model for Ulysess and compare other texts
 	M = Model(Ulysess)
 	HOD = M.apply_model(HeartofDarkness)
 	TSOP =M.apply_model(ThisSideofParadise)
 	PAP= M.apply_model(PrideandPrejudice)
 
+    #equally weighted word and part of speech usage likelihoods
 	HODw = .5*2**HOD[0] + .5*2**HOD[1]
 	TSOPw = .5*2**TSOP[0] + .5*2**TSOP[1]
 	PAPw = .5*2**PAP[0] + .5*2**PAP[1]
